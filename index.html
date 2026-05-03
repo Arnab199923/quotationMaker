@@ -269,12 +269,13 @@
             font-size: 14px;
         }
 
-        /* Modern Inputs */
+        /* Modern Inputs with AUTO-UPPERCASE */
         input[type="text"], 
         input[type="email"], 
         input[type="tel"],
         input[type="number"],
         textarea {
+            text-transform: uppercase; /* FORCED VISUAL UPPERCASE */
             padding: 10px 12px; 
             border: 1px solid #cbd5e0;
             border-radius: 8px;
@@ -327,7 +328,10 @@
         th.num-col { text-align: right; }
         .calc-qty, .calc-rate, .calc-disc, .calc-net, .calc-tax, .calc-footer { text-align: right !important; }
         
-        td input { width: 100%; box-sizing: border-box; border: none; border-radius: 0; padding: 12px 10px; outline: none; font-size: 14px; background-color: transparent; }
+        td input { 
+            text-transform: uppercase; /* FORCED VISUAL UPPERCASE IN TABLE */
+            width: 100%; box-sizing: border-box; border: none; border-radius: 0; padding: 12px 10px; outline: none; font-size: 14px; background-color: transparent; 
+        }
         td input:focus:not(:read-only) { background-color: #ebf8ff; box-shadow: inset 0 0 0 2px #3182ce; }
         tbody tr { transition: background-color 0.2s ease; }
         tbody tr:hover { background-color: #f8fafc; }
@@ -444,6 +448,7 @@
             #tcPrintDisplay { 
                 display: block !important; 
                 font-size: 12px;
+                text-transform: uppercase;
             }
             #tcPrintDisplay ol { margin-top: 5px; padding-left: 20px; color: #2d3748; }
             #tcPrintDisplay li { margin-bottom: 4px; }
@@ -596,7 +601,7 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- First row injected by JS to maintain structure -->
+                <!-- Rows injected by JS -->
             </tbody>
             
             <tfoot>
@@ -651,15 +656,14 @@
             <div class="form-field" style="flex: 1 1 100%;">
                 <label for="tcInput">
                     Enter Terms Below 
-                    <span class="helper-text" style="margin-left:8px; display:inline;">(Press 'Enter' to separate points. It will automatically convert to numbered bullets when printed.)</span>
+                    <span class="helper-text" style="margin-left:8px; display:inline;">(Press 'Enter' to separate points. Bulleted when printed.)</span>
                 </label>
-                <textarea id="tcInput" rows="4" placeholder="Type a condition here, then press Enter for the next one...">Goods once sold will not be taken back.
+                <textarea id="tcInput" rows="4" placeholder="Type condition here...">Goods once sold will not be taken back.
 Warranty claims are subject to manufacturer terms.
 All disputes are subject to local jurisdiction.</textarea>
             </div>
         </div>
         
-        <!-- This div only shows up during printing -->
         <div id="tcPrintDisplay"></div>
 
         <div class="action-buttons">
@@ -675,14 +679,13 @@ All disputes are subject to local jurisdiction.</textarea>
 
 <script>
     // --- STATE MANAGEMENT ---
-    let currentQuoteId = null; // Tracks if we are editing an existing quote or making a new one
+    let currentQuoteId = null;
 
     // --- INITIALIZATION ---
     window.addEventListener('load', () => {
         setTodayDate();
         renderSavedQuotes();
         
-        // Setup initial blank row
         if(document.querySelectorAll('#itemsTable tbody tr').length === 0) {
             addNewRow();
         }
@@ -731,7 +734,6 @@ All disputes are subject to local jurisdiction.</textarea>
         const hideClass = isHidden ? 'hide-col' : '';
         const requiredAttr = isHidden ? '' : 'required';
         
-        // If data is passed in (loading), use it, otherwise empty defaults
         const valName = item ? item.name : '';
         const valCode = item ? item.code : '';
         const valQty = item ? item.qty : '';
@@ -844,14 +846,14 @@ All disputes are subject to local jurisdiction.</textarea>
     document.getElementById('transport').addEventListener('input', calculateTotals);
     document.getElementById('state').addEventListener('input', calculateTotals);
 
-    // --- DATA SAVING LOGIC (LOCAL + CLOUD UNIFIED) ---
+    // --- DATA SAVING LOGIC (WITH UPPERCASE TRANSFORMATION) ---
     function startNewQuote() {
         currentQuoteId = null;
         document.getElementById('quotationForm').reset();
-        document.querySelector('#itemsTable tbody').innerHTML = ''; // clear table
+        document.querySelector('#itemsTable tbody').innerHTML = ''; 
         setTodayDate();
         document.getElementById('tcInput').value = "Goods once sold will not be taken back.\nWarranty claims are subject to manufacturer terms.\nAll disputes are subject to local jurisdiction.";
-        addNewRow(); // add 1 empty row
+        addNewRow(); 
         calculateTotals();
     }
 
@@ -862,77 +864,70 @@ All disputes are subject to local jurisdiction.</textarea>
             return;
         }
 
-        // Change button to show it's saving
         const saveBtn = document.getElementById('saveBtn');
         const originalText = saveBtn.innerHTML;
         saveBtn.innerHTML = "⏳ Saving...";
         saveBtn.disabled = true;
 
-        // 1. Collect Items Data
+        // 1. Collect Items Data & Transform to Uppercase
         const items = [];
         document.querySelectorAll('#itemsTable tbody tr').forEach(row => {
             items.push({
-                name: row.querySelector('.inp-name').value,
-                code: row.querySelector('.inp-code').value,
+                name: row.querySelector('.inp-name').value.toUpperCase(),
+                code: row.querySelector('.inp-code').value.toUpperCase(),
                 qty: row.querySelector('.calc-qty').value,
                 rate: row.querySelector('.calc-rate').value,
                 disc: row.querySelector('.calc-disc').value
             });
         });
 
-        // 2. Create Master Data Object
+        // 2. Create Master Data Object & Transform all strings to Uppercase
         const quoteData = {
             id: currentQuoteId || "Q-" + Date.now().toString().slice(-6),
             format: 'RAGI',
-            partyName: document.getElementById('partyName').value,
+            partyName: document.getElementById('partyName').value.toUpperCase(),
             customerNumber: document.getElementById('customerNumber').value,
-            state: document.getElementById('state').value,
-            address: document.getElementById('addressInput').value,
-            email: document.getElementById('email').value,
-            gstNum: document.getElementById('gstNum').value,
-            salesPerson: document.getElementById('salesPerson').value,
+            state: document.getElementById('state').value.toUpperCase(),
+            address: document.getElementById('addressInput').value.toUpperCase(),
+            email: document.getElementById('email').value.toUpperCase(),
+            gstNum: document.getElementById('gstNum').value.toUpperCase(),
+            salesPerson: document.getElementById('salesPerson').value.toUpperCase(),
             salesNumber: document.getElementById('salesNumber').value,
             autoDate: document.getElementById('autoDate').value,
-            createdBy: document.getElementById('createdBy').value,
-            checkedBy: document.getElementById('checkedBy').value,
+            createdBy: document.getElementById('createdBy').value.toUpperCase(),
+            checkedBy: document.getElementById('checkedBy').value.toUpperCase(),
             showColumns: document.getElementById('toggleColumns').checked,
             items: items,
             addDisc: document.getElementById('addDisc').value,
             transport: document.getElementById('transport').value,
-            tcInput: document.getElementById('tcInput').value,
+            tcInput: document.getElementById('tcInput').value.toUpperCase(),
             netTotal: document.getElementById('netTotal').value
         };
 
-        // 3. Save to Local Storage (Required to show up on your Dashboard)
+        // 3. Local Save
         let savedQuotes = JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || [];
-        
         if (currentQuoteId) {
-            // Update existing
             const index = savedQuotes.findIndex(q => q.id === currentQuoteId);
             if(index !== -1) savedQuotes[index] = quoteData;
         } else {
-            // Add new
             savedQuotes.unshift(quoteData);
             currentQuoteId = quoteData.id; 
         }
         localStorage.setItem('pipesSanitaryQuotes', JSON.stringify(savedQuotes));
 
-        // 4. Save to Cloud (Google Sheets)
+        // 4. Cloud Save (Replace URL with your Script URL)
         const googleAppScriptURL = "https://script.google.com/macros/s/AKfycbwnUYDFq2l--JyASI9S-u3PZTnpQ3crqKHJfrhgxdLKcjMAVoG4YJ_4mGTyHsxAL1-Y/exec";
 
-        if (googleAppScriptURL !== "YOUR_GOOGLE_SCRIPT_URL_HERE") {
+        if (googleAppScriptURL.includes("macros")) {
             fetch(googleAppScriptURL, {
                 method: 'POST',
-                mode: 'no-cors', // Bypasses browser security restrictions for simple saves
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(quoteData)
             })
             .then(() => {
                 saveBtn.innerHTML = "✅ Saved Successfully!";
                 showToast(); 
-                
                 setTimeout(() => {
                     saveBtn.innerHTML = originalText;
                     saveBtn.disabled = false;
@@ -941,14 +936,13 @@ All disputes are subject to local jurisdiction.</textarea>
             .catch(error => {
                 console.error('Error saving to cloud:', error);
                 saveBtn.innerHTML = "❌ Cloud Error (Saved Locally)";
-                showToast(); // Still show toast because local storage succeeded
+                showToast(); 
                 setTimeout(() => {
                     saveBtn.innerHTML = originalText;
                     saveBtn.disabled = false;
                 }, 3000);
             });
         } else {
-            // If you haven't put your URL in yet, just finalize the local save
             saveBtn.innerHTML = "✅ Saved Locally!";
             showToast();
             setTimeout(() => {
@@ -965,10 +959,9 @@ All disputes are subject to local jurisdiction.</textarea>
 
         currentQuoteId = quote.id;
 
-        // Populate fields
         document.getElementById('partyName').value = quote.partyName || '';
         document.getElementById('customerNumber').value = quote.customerNumber || '';
-        document.getElementById('state').value = quote.state || 'Assam';
+        document.getElementById('state').value = quote.state || 'ASSAM';
         document.getElementById('addressInput').value = quote.address || '';
         document.getElementById('email').value = quote.email || '';
         document.getElementById('gstNum').value = quote.gstNum || '';
@@ -978,21 +971,18 @@ All disputes are subject to local jurisdiction.</textarea>
         document.getElementById('createdBy').value = quote.createdBy || '';
         document.getElementById('checkedBy').value = quote.checkedBy || '';
         
-        // Handle Toggle
         const toggle = document.getElementById('toggleColumns');
         if(quote.showColumns !== undefined) {
             toggle.checked = quote.showColumns;
-            toggle.dispatchEvent(new Event('change')); // trigger visual update
+            toggle.dispatchEvent(new Event('change')); 
         }
 
-        // Footer inputs
         document.getElementById('addDisc').value = quote.addDisc || '';
         document.getElementById('transport').value = quote.transport || '';
         document.getElementById('tcInput').value = quote.tcInput || '';
 
-        // Populate Table
         const tableBody = document.querySelector('#itemsTable tbody');
-        tableBody.innerHTML = ''; // clear
+        tableBody.innerHTML = ''; 
         if(quote.items && quote.items.length > 0) {
             quote.items.forEach(item => addNewRow(item));
         } else {
@@ -1003,11 +993,11 @@ All disputes are subject to local jurisdiction.</textarea>
     }
 
     function deleteQuote(id) {
-        if(confirm("Are you sure you want to delete this quotation? This cannot be undone.")) {
+        if(confirm("Are you sure you want to delete this quotation?")) {
             let savedQuotes = JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || [];
             savedQuotes = savedQuotes.filter(q => q.id !== id);
             localStorage.setItem('pipesSanitaryQuotes', JSON.stringify(savedQuotes));
-            renderSavedQuotes(); // Refresh table
+            renderSavedQuotes();
         }
     }
 
@@ -1016,7 +1006,7 @@ All disputes are subject to local jurisdiction.</textarea>
         let savedQuotes = JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || [];
 
         if(savedQuotes.length === 0) {
-            listContainer.innerHTML = `<div class="empty-state">No saved quotations found. Create a new RAGI document to get started.</div>`;
+            listContainer.innerHTML = `<div class="empty-state">No saved quotations found.</div>`;
             return;
         }
 
@@ -1038,14 +1028,14 @@ All disputes are subject to local jurisdiction.</textarea>
             html += `
                 <tr>
                     <td style="text-align:center; padding:12px 10px;">${q.autoDate || 'N/A'}</td>
-                    <td style="padding:12px 10px;"><strong>${q.partyName || 'Unnamed'}</strong></td>
+                    <td style="padding:12px 10px;"><strong>${q.partyName || 'UNNAMED'}</strong></td>
                     <td style="text-align:center; padding:12px 10px;">
                         <span class="badge" style="background:#e2e8f0; color:#2d3748;">${q.format}</span>
                     </td>
                     <td style="text-align:right; font-weight:bold; padding:12px 10px;">${q.netTotal || '0.00'}</td>
                     <td style="text-align:center; padding:12px 10px;">
-                        <button class="action-icon btn-edit-icon" onclick="loadQuote('${q.id}')" title="Edit/Open">✏️ Edit</button>
-                        <button class="action-icon btn-delete-icon" onclick="deleteQuote('${q.id}')" title="Delete">🗑️</button>
+                        <button class="action-icon btn-edit-icon" onclick="loadQuote('${q.id}')">✏️ Edit</button>
+                        <button class="action-icon btn-delete-icon" onclick="deleteQuote('${q.id}')">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -1055,7 +1045,6 @@ All disputes are subject to local jurisdiction.</textarea>
         listContainer.innerHTML = html;
     }
 
-    // --- UTILITIES ---
     function setTodayDate() {
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, '0');
@@ -1070,9 +1059,8 @@ All disputes are subject to local jurisdiction.</textarea>
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    // --- PRINT LOGIC ---
     function formatTermsForPrint() {
-        const rawText = document.getElementById('tcInput').value;
+        const rawText = document.getElementById('tcInput').value.toUpperCase();
         const lines = rawText.split('\n').filter(line => line.trim() !== '');
         const printDisplay = document.getElementById('tcPrintDisplay');
         
@@ -1088,24 +1076,14 @@ All disputes are subject to local jurisdiction.</textarea>
 
     document.getElementById('printBtn').addEventListener('click', function() {
         const form = document.getElementById('quotationForm');
-        
         if (form.checkValidity()) {
             formatTermsForPrint();
             const loader = document.getElementById('appLoader');
-            const loaderText = document.getElementById('loaderText');
-            
-            loaderText.innerText = "Preparing Document for Print...";
             loader.classList.remove('hidden');
-            
             setTimeout(() => {
                 loader.classList.add('hidden');
                 window.print();
-                
-                setTimeout(() => {
-                    loaderText.innerText = "Loading Application...";
-                }, 500);
             }, 800);
-            
         } else {
             form.reportValidity();
         }
