@@ -108,7 +108,7 @@
         /* Mobile Responsive Table Wrapper */
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
         
-        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; /* Forces scroll on small screens */ }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; }
         th, td { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; }
         th:last-child, td:last-child { border-right: none; }
         tbody tr:last-child td { border-bottom: none; }
@@ -140,10 +140,18 @@
         .btn-add { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); padding: 10px 18px; font-size: 14px; }
         .btn-print { background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); min-width: 140px; }
         .btn-save { background: linear-gradient(135deg, #38a169 0%, #2f855a 100%); min-width: 140px; }
+        .btn-csv { background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%); min-width: 140px; }
         .btn-back { background: #e2e8f0; color: #4a5568; box-shadow: none; font-size: 14px; padding: 10px 20px;}
         .btn-back:hover { background: #cbd5e0; transform: translateY(0); box-shadow: none;}
         .remove-row-btn { background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; margin-left: 10px; transition: 0.2s;}
         .remove-row-btn:hover { background: #e53e3e; color: white; }
+
+        /* SMART AUTOCOMPLETE CSS */
+        .autocomplete-wrapper { position: relative; width: 100%; }
+        .autocomplete-list { position: absolute; z-index: 1000; background: #fff; border: 1px solid #3182ce; border-radius: 0 0 8px 8px; width: 350px; max-height: 250px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; text-align: left; }
+        .autocomplete-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 12px; transition: background 0.2s; line-height: 1.4; }
+        .autocomplete-item:hover { background-color: #ebf8ff; }
+        .autocomplete-item strong { color: #c53030; font-size: 13px; font-weight: 800; display: block; margin-bottom: 2px;}
 
         #tcPrintDisplay { display: none; }
         #toast { visibility: hidden; min-width: 250px; background-color: #38a169; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 16px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.5s, bottom 0.5s; }
@@ -151,18 +159,16 @@
 
         /* PRINT CSS */
         @media print {
-            @page { size: A4 portrait; margin: 5mm; } /* Slight margin for printer safety */
+            @page { size: A4 portrait; margin: 5mm; } 
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box !important; }
             body { background: white !important; padding: 0 !important; background-image: none !important; }
-            .loader-overlay, #loginScreen, #selectionScreen, #toast { display: none !important; }
+            .loader-overlay, #loginScreen, #selectionScreen, #toast, .autocomplete-list { display: none !important; }
             .hide-on-print, .remove-row-btn, .action-buttons, .add-row-container, .toggle-container, .helper-text { display: none !important; }
             
-            /* Remove box styling for pure document look */
             .form-container { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 0 !important; background-color: white !important; border: none !important; box-shadow: none !important;}
             .main-header { border-bottom-color: #000; padding-bottom: 10px; margin-bottom: 20px; }
             .invoice-logo { padding: 0 !important; max-height: 60px; }
             
-            /* Remove the scrolling wrapper effect on print */
             .table-responsive { overflow: visible !important; border: none !important; }
             table { min-width: 100% !important; border: 1px solid #cbd5e0 !important; }
             
@@ -276,7 +282,7 @@
                 <thead>
                     <tr>
                         <th style="width: 5%;">Act</th><th style="width: 25%;" class="required-label">Item Name</th>
-                        <th style="width: 10%;">Code</th><th style="width: 8%;" class="required-label num-col">Qty</th>
+                        <th style="width: 15%;">Code / Cat No.</th><th style="width: 8%;" class="required-label num-col">Qty</th>
                         <th style="width: 11%;" class="required-label num-col col-mrp">Rate (₹)</th><th style="width: 10%;" class="num-col col-disc">Disc (%)</th>
                         <th style="width: 15%;" class="num-col">Net Rate (₹)</th><th style="width: 16%;" class="num-col">Taxable Val (₹)</th>
                     </tr>
@@ -311,6 +317,7 @@ All disputes are subject to local jurisdiction.</textarea>
         <div class="action-buttons">
             <button class="btn btn-back" id="btnBackToMenu" type="button">⬅️ Back to Menu</button>
             <div class="action-right">
+                <button class="btn btn-csv" id="csvBtn" type="button">📊 Export CSV</button>
                 <button class="btn btn-save" id="saveBtn" type="button">💾 Save Document</button>
                 <button class="btn btn-print" id="printBtn" type="button">🖨️ Print Document</button>
             </div>
@@ -324,6 +331,38 @@ All disputes are subject to local jurisdiction.</textarea>
     // ==========================================
     const googleAppScriptURL = "https://script.google.com/macros/s/AKfycbwnUYDFq2l--JyASI9S-u3PZTnpQ3crqKHJfrhgxdLKcjMAVoG4YJ_4mGTyHsxAL1-Y/exec";
     const CORRECT_PASSWORD = "ADMIN2026"; 
+
+    // ==========================================
+    // JAQUAR INVENTORY (EXTRACTED FROM PDF VOL 22)
+    // ==========================================
+    const productInventory = [
+        { code: "LAG-CHR-91011B", name: "LAGUNA SINGLE LEVER BASIN MIXER W/O POPUP", rate: 11000, disc: 0 },
+        { code: "LAG-CHR-91023B", name: "LAGUNA SINGLE LEVER EXTENDED BASIN MIXER", rate: 13200, disc: 0 },
+        { code: "LAG-CHR-91005B", name: "LAGUNA SINGLE LEVER TALL BOY", rate: 15300, disc: 0 },
+        { code: "LAG-CHR-91231NK", name: "LAGUNA EXPOSED PART KIT OF S/L BASIN MIXER", rate: 6750, disc: 0 },
+        { code: "LAG-CHR-91027", name: "LAGUNA FLOOR MOUNTED S/L BASIN MIXER", rate: 60900, disc: 0 },
+        { code: "FUP-CHR-29011BPM", name: "FUSION PRIME S/L BASIN MIXER W/O POPUP", rate: 5050, disc: 0 },
+        { code: "FUP-CHR-29051BPM", name: "FUSION PRIME S/L BASIN MIXER WITH POPUP", rate: 6050, disc: 0 },
+        { code: "FUP-CHR-29115PM", name: "FUSION PRIME S/L WALL MIXER W/ PROVISION FOR SHOWER", rate: 9000, disc: 0 },
+        { code: "FUP-CHR-29213BPM", name: "FUSION PRIME S/L 1-HOLE BIDET MIXER", rate: 6050, disc: 0 },
+        { code: "FUP-CHR-29001PM", name: "FUSION PRIME PILLAR COCK", rate: 2650, disc: 0 },
+        { code: "FLP-CHR-5001BPM", name: "FLORENTINE PRIME S/L BASIN MIXER W/O POPUP", rate: 4900, disc: 0 },
+        { code: "FLP-CHR-5119PM", name: "FLORENTINE PRIME S/L WALL MIXER W/O HAND SHOWER", rate: 7900, disc: 0 },
+        { code: "QQP-CHR-7001BPM", name: "QUEEN'S PRIME S/L BASIN MIXER W/O POPUP", rate: 5900, disc: 0 },
+        { code: "QQP-CHR-7011PM", name: "QUEEN'S PRIME PILLAR COCK", rate: 3300, disc: 0 },
+        { code: "KUP-CHR-35011BPM", name: "KUBIX PRIME S/L BASIN MIXER W/O POPUP", rate: 8100, disc: 0 },
+        { code: "OPP-CHR-15011BPM", name: "OPAL PRIME S/L BASIN MIXER W/O POPUP", rate: 5350, disc: 0 },
+        { code: "ORP-CHR-10011BPM", name: "ORNAMIX PRIME S/L BASIN MIXER", rate: 5350, disc: 0 },
+        { code: "COP-CHR-001BPM", name: "CONTINENTAL PRIME S/L BASIN MIXER", rate: 3750, disc: 0 },
+        { code: "SNR-CHR-51011N", name: "SENSOR FAUCET FOR WASH BASIN (BATTERY)", rate: 17600, disc: 0 },
+        { code: "SNR-CHR-51033", name: "SENSOR FAUCET RECTANGULAR SHAPE (BATTERY)", rate: 14400, disc: 0 },
+        { code: "ERM-WHT-V006", name: "ERICA VERTICAL 6L WATER HEATER", rate: 9900, disc: 0 },
+        { code: "INP-WHT-5.5KW", name: "INSTA PRIME 5.5KW WATER HEATER", rate: 9350, disc: 0 },
+        { code: "INP-BLM-12KW", name: "INSTA PRIME 3 PHASE 12KW WATER HEATER", rate: 25300, disc: 0 },
+        { code: "ITS-WHT-89851S300PP", name: "BIDSPA SINGLE PIECE WC WITH ELECTRONIC SEAT", rate: 46000, disc: 0 },
+        { code: "OHS-1679", name: "MAZE PRIME SQUARE SHOWER 450X450MM", rate: 62000, disc: 0 },
+        { code: "SHP-WHT-ST86113", name: "GLASSY WHITE SHOWER PANEL 1400X250MM", rate: 44400, disc: 0 }
+    ];
 
     // ==========================================
     // CROSS-DEVICE CLOUD SYNC LOGIC
@@ -446,7 +485,7 @@ All disputes are subject to local jurisdiction.</textarea>
     }
 
     // ==========================================
-    // TABLE AND MATH LOGIC
+    // TABLE AND MATH LOGIC (SMART AUTOCOMPLETE)
     // ==========================================
     function addNewRow(item = null) {
         const tbody = document.querySelector('#itemsTable tbody');
@@ -458,7 +497,12 @@ All disputes are subject to local jurisdiction.</textarea>
         tr.innerHTML = `
             <td><button type="button" class="remove-row-btn" onclick="removeRow(this)">✖</button></td>
             <td><input type="text" class="inp-name" value="${item ? item.name : ''}" ></td>
-            <td><input type="text" class="inp-code" value="${item ? item.code : ''}"></td>
+            <td>
+                <div class="autocomplete-wrapper">
+                    <input type="text" class="inp-code" placeholder="Type Cat No..." value="${item ? item.code : ''}" autocomplete="off">
+                    <div class="autocomplete-list"></div>
+                </div>
+            </td>
             <td><input type="number" class="calc-qty" min="1" value="${item ? item.qty : ''}" required></td>
             <td class="col-mrp ${hideClass}"><input type="number" class="calc-rate" step="0.01" value="${item ? item.rate : ''}" ${req}></td>
             <td class="col-disc ${hideClass}"><input type="number" class="calc-disc" step="0.01" max="100" value="${item ? item.disc : ''}"></td>
@@ -520,13 +564,71 @@ All disputes are subject to local jurisdiction.</textarea>
         document.getElementById('netTotal').value = roundedNetTotal.toFixed(2);
     }
 
+    // Handles Autocomplete & Table Math
     document.querySelector('#itemsTable tbody').addEventListener('input', e => {
-        if(e.target.matches('.calc-qty, .calc-rate, .calc-disc')) calculateTotals();
+        
+        // 1. SMART CAT NO. AUTOCOMPLETE
+        if (e.target.matches('.inp-code')) {
+            const input = e.target;
+            const val = input.value.toUpperCase();
+            const listDiv = input.nextElementSibling; // the .autocomplete-list div
+            
+            listDiv.innerHTML = ''; // Clear previous suggestions
+            
+            if (!val) {
+                listDiv.style.display = 'none';
+                return;
+            }
+
+            // Find matching Cat No OR Item Name
+            const matches = productInventory.filter(p => 
+                p.code.includes(val) || p.name.includes(val)
+            ).slice(0, 15); // Top 15 to prevent lag
+
+            if (matches.length > 0) {
+                listDiv.style.display = 'block';
+                matches.forEach(match => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.innerHTML = `<strong>${match.code}</strong>${match.name}`;
+                    
+                    div.onclick = function() {
+                        const row = input.closest('tr');
+                        row.querySelector('.inp-code').value = match.code;
+                        row.querySelector('.inp-name').value = match.name;
+                        row.querySelector('.calc-rate').value = match.rate;
+                        
+                        if (row.querySelector('.calc-disc').value === '') {
+                            row.querySelector('.calc-disc').value = match.disc;
+                        }
+                        
+                        listDiv.style.display = 'none';
+                        calculateTotals();
+                    };
+                    listDiv.appendChild(div);
+                });
+            } else {
+                listDiv.style.display = 'none';
+            }
+        }
+        
+        // 2. MATH RE-CALCULATION
+        if(e.target.matches('.calc-qty, .calc-rate, .calc-disc')) {
+            calculateTotals();
+        }
     });
+
+    // Hide dropdowns if user clicks anywhere else on the screen
+    document.addEventListener('click', function(e) {
+        if (!e.target.matches('.inp-code')) {
+            document.querySelectorAll('.autocomplete-list').forEach(el => el.style.display = 'none');
+        }
+    });
+
     ['addDisc', 'transport', 'state'].forEach(id => document.getElementById(id).addEventListener('input', calculateTotals));
 
     // ==========================================
-    // SAVE, LOAD, AND PRINT LOGIC
+    // SAVE, LOAD, CSV, AND PRINT LOGIC
     // ==========================================
     function startNewQuote() {
         currentQuoteId = null;
@@ -591,11 +693,46 @@ All disputes are subject to local jurisdiction.</textarea>
         }
     });
 
+    document.getElementById('csvBtn').addEventListener('click', function() {
+        const quoteNo = document.getElementById('quoteNoInput').value || 'Draft';
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        csvContent += "Item Name,Code,Qty,Rate (INR),Disc (%),Net Rate (INR),Taxable Value (INR)\n";
+        
+        document.querySelectorAll('#itemsTable tbody tr').forEach(row => {
+            const name = row.querySelector('.inp-name').value.replace(/,/g, ' '); 
+            const code = row.querySelector('.inp-code').value.replace(/,/g, ' ');
+            const qty = row.querySelector('.calc-qty').value || 0;
+            const rate = row.querySelector('.calc-rate').value || 0;
+            const disc = row.querySelector('.calc-disc').value || 0;
+            const net = row.querySelector('.calc-net').value || 0;
+            const tax = row.querySelector('.calc-tax').value || 0;
+            
+            if(name || code) { 
+                csvContent += `"${name}","${code}",${qty},${rate},${disc},${net},${tax}\n`;
+            }
+        });
+        
+        csvContent += `\n,,,,,Grand Total:,${document.getElementById('grandTotal').value}\n`;
+        csvContent += `,,,,,Net Payable:,${document.getElementById('netTotal').value}\n`;
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Quotation_${quoteNo}.csv`);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast("📊 CSV Exported Successfully!");
+    });
+
     function loadQuote(id) {
         const quote = (JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || []).find(q => q.id === id);
         if(!quote) return;
 
-        currentQuoteId = null; // Duplicate feature
+        currentQuoteId = null; 
         
         ['quoteNoInput', 'partyName', 'customerNumber', 'state', 'email', 'gstNum', 'salesPerson', 'salesNumber', 'autoDate', 'createdBy', 'checkedBy', 'addDisc', 'transport'].forEach(key => {
             const elId = key === 'quoteNoInput' ? 'quoteNoInput' : key;
