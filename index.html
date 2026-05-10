@@ -346,13 +346,21 @@ All disputes are subject to local jurisdiction.</textarea>
 
 <script>
     // ==========================================
+    // SAFE STORAGE WRAPPERS (MOBILE FIX)
+    // ==========================================
+    function safeGetSession(key) { try { return sessionStorage.getItem(key); } catch(e) { return null; } }
+    function safeSetSession(key, val) { try { sessionStorage.setItem(key, val); } catch(e) { console.warn("Session storage blocked."); } }
+    function safeGetLocal(key) { try { return localStorage.getItem(key); } catch(e) { return null; } }
+    function safeSetLocal(key, val) { try { localStorage.setItem(key, val); } catch(e) { console.warn("Local storage blocked."); } }
+
+    // ==========================================
     // BACKEND CONFIGURATION & SECURITY
     // ==========================================
     const googleAppScriptURL = "https://script.google.com/macros/s/AKfycbwnUYDFq2l--JyASI9S-u3PZTnpQ3crqKHJfrhgxdLKcjMAVoG4YJ_4mGTyHsxAL1-Y/exec";
     const CORRECT_PASSWORD = "ADMIN2026"; 
 
     // ==========================================
-    // JAQUAR INVENTORY (EXTRACTED FROM PDF VOL 22)
+    // JAQUAR INVENTORY
     // ==========================================
     const productInventory = [
         { code: "LAG-CHR-91011B", name: "LAGUNA SINGLE LEVER BASIN MIXER W/O POPUP", rate: 11000, disc: 0 },
@@ -399,7 +407,7 @@ All disputes are subject to local jurisdiction.</textarea>
             catch(e) { throw new Error("Cloud script not ready for two-way sync."); }
             
             if (Array.isArray(cloudData)) {
-                localStorage.setItem('pipesSanitaryQuotes', JSON.stringify(cloudData));
+                safeSetLocal('pipesSanitaryQuotes', JSON.stringify(cloudData));
                 renderSavedQuotes();
                 if(showFeedback) showToast("✅ Cloud Sync Complete!");
             }
@@ -413,13 +421,12 @@ All disputes are subject to local jurisdiction.</textarea>
 
     document.getElementById('syncCloudBtn').addEventListener('click', () => syncCloudData(true));
 
-
     // ==========================================
     // LOGIN OVERLAY LOGIC
     // ==========================================
     window.addEventListener('load', () => {
         const loginScreen = document.getElementById('loginScreen');
-        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        if (safeGetSession('isLoggedIn') === 'true') {
             loginScreen.style.display = 'none';
             triggerInitialSync();
         } else {
@@ -433,7 +440,7 @@ All disputes are subject to local jurisdiction.</textarea>
     function attemptLogin() {
         const input = document.getElementById('accessKeyInput').value;
         if (input === CORRECT_PASSWORD) {
-            sessionStorage.setItem('isLoggedIn', 'true');
+            safeSetSession('isLoggedIn', 'true');
             document.getElementById('loginScreen').style.opacity = '0';
             setTimeout(() => {
                 document.getElementById('loginScreen').style.display = 'none';
@@ -585,24 +592,21 @@ All disputes are subject to local jurisdiction.</textarea>
 
     // Handles Autocomplete & Table Math
     document.querySelector('#itemsTable tbody').addEventListener('input', e => {
-        
-        // 1. SMART CAT NO. AUTOCOMPLETE
         if (e.target.matches('.inp-code')) {
             const input = e.target;
             const val = input.value.toUpperCase();
-            const listDiv = input.nextElementSibling; // the .autocomplete-list div
+            const listDiv = input.nextElementSibling; 
             
-            listDiv.innerHTML = ''; // Clear previous suggestions
+            listDiv.innerHTML = ''; 
             
             if (!val) {
                 listDiv.style.display = 'none';
                 return;
             }
 
-            // Find matching Cat No OR Item Name
             const matches = productInventory.filter(p => 
                 p.code.includes(val) || p.name.includes(val)
-            ).slice(0, 15); // Top 15 to prevent lag
+            ).slice(0, 15); 
 
             if (matches.length > 0) {
                 listDiv.style.display = 'block';
@@ -631,13 +635,11 @@ All disputes are subject to local jurisdiction.</textarea>
             }
         }
         
-        // 2. MATH RE-CALCULATION
         if(e.target.matches('.calc-qty, .calc-rate, .calc-disc')) {
             calculateTotals();
         }
     });
 
-    // Hide dropdowns if user clicks anywhere else on the screen
     document.addEventListener('click', function(e) {
         if (!e.target.matches('.inp-code')) {
             document.querySelectorAll('.autocomplete-list').forEach(el => el.style.display = 'none');
@@ -700,11 +702,12 @@ All disputes are subject to local jurisdiction.</textarea>
             netTotal: document.getElementById('netTotal').value
         };
 
-        let saves = JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || [];
+        // SAFE LOCAL STORAGE CALL
+        let saves = JSON.parse(safeGetLocal('pipesSanitaryQuotes')) || [];
         const index = saves.findIndex(q => q.id === (currentQuoteId || quoteData.id));
         if(index !== -1) saves[index] = quoteData;
         else { saves.unshift(quoteData); currentQuoteId = quoteData.id; }
-        localStorage.setItem('pipesSanitaryQuotes', JSON.stringify(saves));
+        safeSetLocal('pipesSanitaryQuotes', JSON.stringify(saves));
 
         if (googleAppScriptURL.includes("macros")) {
             fetch(googleAppScriptURL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(quoteData) })
@@ -748,7 +751,7 @@ All disputes are subject to local jurisdiction.</textarea>
     });
 
     function loadQuote(id) {
-        const quote = (JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || []).find(q => q.id === id);
+        const quote = (JSON.parse(safeGetLocal('pipesSanitaryQuotes')) || []).find(q => q.id === id);
         if(!quote) return;
 
         currentQuoteId = null; 
@@ -772,16 +775,21 @@ All disputes are subject to local jurisdiction.</textarea>
 
     function deleteQuote(id) {
         if(confirm("Are you sure you want to delete this quotation?")) {
-            let saves = JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || [];
-            localStorage.setItem('pipesSanitaryQuotes', JSON.stringify(saves.filter(q => q.id !== id)));
+            let saves = JSON.parse(safeGetLocal('pipesSanitaryQuotes')) || [];
+            safeSetLocal('pipesSanitaryQuotes', JSON.stringify(saves.filter(q => q.id !== id)));
             renderSavedQuotes();
         }
     }
 
     function renderSavedQuotes() {
         const list = document.getElementById('savedQuotesList');
-        const saves = JSON.parse(localStorage.getItem('pipesSanitaryQuotes')) || [];
-        if(!saves.length) return list.innerHTML = `<div class="empty-state">No saved quotations found.</div>`;
+        // SAFE LOCAL STORAGE CALL
+        const rawSaves = safeGetLocal('pipesSanitaryQuotes');
+        const saves = rawSaves ? JSON.parse(rawSaves) : [];
+        if(!saves.length) {
+            list.innerHTML = `<div class="empty-state">No saved quotations found.</div>`;
+            return;
+        }
 
         let html = `<div class="table-responsive"><table><thead><tr><th style="width:15%">Quote/Ref #</th><th style="width:15%">Date</th><th style="width:25%; text-align:left;">Customer Name</th><th style="width:10%">Format</th><th style="width:20%; text-align:right;">Amount (₹)</th><th style="width:15%; text-align:center;">Action</th></tr></thead><tbody>`;
 
